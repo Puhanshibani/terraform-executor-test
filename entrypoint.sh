@@ -1,3 +1,3 @@
-#!bin/python
+#!bin/bash
 
-print("from python")
+ls -ltr
