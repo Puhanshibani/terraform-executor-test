@@ -14,6 +14,12 @@ variable "input_hello" {
   default = "Hello World2!"
 }
 
+variable "aws_access_key" {
+}
+
 output "output_hello" {
   value = var.input_hello
+}
+output "output_aws_access_key" {
+  value = var.aws_access_key
 }
