@@ -15,8 +15,6 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-
-
 variable "input_hello" {
   default = "Hello World2!"
 }
