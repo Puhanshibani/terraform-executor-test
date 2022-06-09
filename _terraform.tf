@@ -1,4 +1,4 @@
- terraform.tf : Location of the terraform state file . (s3)key is unique to each code pipeline
+#  terraform.tf : Location of the terraform state file . (s3)key is unique to each code pipeline
 
 terraform {
   backend "s3" {
