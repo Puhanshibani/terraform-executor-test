@@ -17,9 +17,16 @@ variable "input_hello" {
 variable "aws_access_key" {
 }
 
+variable "id" {
+}
+
 output "output_hello" {
   value = var.input_hello
 }
 output "output_aws_access_key" {
   value = var.aws_access_key
 }
+output "output_id" {
+  value = var.id
+}
+
