@@ -10,6 +10,8 @@ terraform {
 }
 
 
+
+
 variable "input_hello" {
   default = "Hello World2!"
 }
