@@ -9,25 +9,11 @@ terraform {
   required_version = ">= 0.14.9"
 }
 
-provider "aws" {
-  region     = var.region
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_key
-}
-
-variable "input_hello" {
-  default = "Hello World2!"
-}
-
-variable "region" {
-}
-variable "aws_access_key" {
-}
-variable "aws_secret_key" {
-}
-
-variable "id" {
-}
+# provider "aws" {
+#   region     = var.region
+#   access_key = var.aws_access_key
+#   secret_key = var.aws_secret_key
+# }
 
 output "output_hello" {
   value = var.input_hello
