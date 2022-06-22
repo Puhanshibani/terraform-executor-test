@@ -1,0 +1,150 @@
+# Docker
+# Build and push an image to Azure Container Registry
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  # Container registry service connection established during pipeline creation
+  dockerRegistryServiceConnection: '05fdc455-57e5-40bd-8856-75e02ecef165'
+  imageRepository: 'webapplicationbase'
+  containerRegistry: 'acr15831.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
+  
+
+  # Smartcheck connection build time variables
+  dsscURL: 'dssc.trendebc.org'
+  dsscUser: 'administrator'
+  dsscPass: 'Trend@123'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Checkout and Build
+  
+  jobs:
+  - job: SAST
+    displayName: Static code analysis
+    steps:
+    - script: | 
+          echo "SonarQube execution for checkedout code"
+          sleep 10
+      displayName: "SonarQube code sanatization check"
+  
+  - job: SCA
+    displayName: Software composition analysis
+    steps:
+    - script: | 
+          echo "Snyk scan analysis"
+          sleep 10
+      displayName: "Snyk cli execution"
+  
+  - job: Build
+    displayName: Build & image Scan
+    dependsOn: SAST
+    steps:
+    - task: Docker@2
+      displayName: Build docker image
+      inputs:
+       command: build
+       repository: $(imageRepository)
+       dockerfile: $(dockerfilePath)
+       containerRegistry: $(dockerRegistryServiceConnection)
+       tags: |
+          $(tag)
+
+    - script: | 
+          docker images
+          docker run -v /var/run/docker.sock:/var/run/docker.sock deepsecurity/smartcheck-scan-action --image-name acr15831.azurecr.io/$(imageRepository):$(tag) --smartcheck-host=$(dsscURL) --smartcheck-user=$(dsscUser) --smartcheck-password=$(dsscPass) --insecure-skip-tls-verify --insecure-skip-registry-tls-verify --preregistry-scan --preregistry-user admin --preregistry-password Trend@123 --findings-threshold '{"malware": 100, "vulnerabilities": { "defcon1": 300, "critical": 300, "high": 300 }, "contents": { "defcon1": 100, "critical": 100, "high": 100 }, "checklists": { "defcon1": 100, "critical": 100, "high": 100 }}'
+      displayName: "Scanning image for security risks"
+      
+    - task: Docker@2
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: $(imageRepository)
+        command: 'push'
+        tags: |
+          $(tag)
+    
+
+
+- stage: provision_arm
+  displayName: Provision staging environment
+  dependsOn: Build
+  jobs:  
+  - job: provision_arm
+    displayName: executing arm template for Azure infrastructure provisioning.
+    steps:
+    - script: | 
+          echo "provisioning azure infrastructure with arm template"
+          sleep 10
+          
+      displayName: "Azure infrastructure is getting ready"
+
+- stage: deploy
+  displayName: Deploy to staging 
+  dependsOn: provision_arm
+  jobs: 
+  - job: integration_test
+    displayName: Application deploy to staging
+    steps:
+    - script: | 
+          echo "Application deployment to staging enironment"
+          sleep 10    
+      displayName: "kubernetes application deployment"   
+
+- stage: IntegrationTest
+  displayName: Integration Test 
+  dependsOn: deploy
+  jobs: 
+  - job: integration_test
+    displayName: Application integration test
+    steps:
+    - script: | 
+          echo "Integration test is in progress"
+          sleep 10    
+      displayName: "Automated Integration Testing" 
+
+- stage: UnitTest
+  displayName: Unit Test 
+  dependsOn: deploy
+  jobs: 
+  - job: unit_test
+    displayName: Selenium Unit test
+    steps:
+    - script: | 
+          echo "Unit test is in progress"
+          sleep 10    
+      displayName: "Automated Unit Testing" 
+
+- stage: DAST
+  displayName: Dynamic Security test 
+  dependsOn: deploy
+  jobs: 
+  - job: DAST
+    displayName: zaproxy application security
+    steps:
+    - script: | 
+          echo "Zaproxy application security testing script"
+          sleep 10    
+      displayName: "Zaproxy DAST execution" 
+
+
+- stage: deprovision_arm
+  displayName: Cleanup staging infra
+  dependsOn: [DAST, UnitTest, IntegrationTest]
+  jobs:  
+  - job: deprovision_arm
+    displayName: Terminate Azure infrastructure.
+    steps:
+    - script: | 
+          echo "deprovisioning azure infrastructure with arm template"
+          sleep 10
+      displayName: "Azure infrastructure is getting destroyed..."
